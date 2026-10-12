@@ -1,0 +1,201 @@
+package org.firstinspires.ftc.teamcode.globals;
+
+import com.outoftheboxrobotics.photoncore.PhotonCore;
+
+import static org.firstinspires.ftc.teamcode.globals.Constants.*;
+import static org.firstinspires.ftc.vision.apriltag.AprilTagProcessor.THREADS_DEFAULT;
+
+import android.util.Log;
+import android.util.Size;
+
+import com.qualcomm.hardware.limelightvision.Limelight3A;
+import com.qualcomm.hardware.lynx.LynxModule;
+import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.VoltageSensor;
+import com.qualcomm.robotcore.util.ElapsedTime;
+import com.qualcomm.robotcore.util.RobotLog;
+import com.seattlesolvers.solverslib.command.CommandScheduler;
+import com.seattlesolvers.solverslib.geometry.Pose2d;
+import com.seattlesolvers.solverslib.hardware.AbsoluteAnalogEncoder;
+import com.seattlesolvers.solverslib.hardware.SensorDigitalDevice;
+import com.seattlesolvers.solverslib.hardware.motors.CRServoGroup;
+import com.seattlesolvers.solverslib.hardware.motors.Motor;
+import com.seattlesolvers.solverslib.hardware.servos.ServoEx;
+import com.seattlesolvers.solverslib.hardware.motors.CRServoEx;
+import com.seattlesolvers.solverslib.hardware.motors.MotorEx;
+import com.seattlesolvers.solverslib.hardware.motors.MotorGroup;
+import com.seattlesolvers.solverslib.util.TelemetryData;
+
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.CurrentUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Position;
+import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
+import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
+
+import org.firstinspires.ftc.vision.VisionPortal;
+import org.firstinspires.ftc.vision.apriltag.AprilTagGameDatabase;
+import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
+
+import java.io.File;
+import java.util.Arrays;
+
+import dev.nullftc.profiler.Profiler;
+import dev.nullftc.profiler.entry.BasicProfilerEntryFactory;
+import dev.nullftc.profiler.exporter.CSVProfilerExporter;
+
+
+public class Robot extends com.seattlesolvers.solverslib.command.Robot {
+    private static final Robot instance = new Robot();
+    public static Robot getInstance() {
+        return instance;
+    }
+
+    public Profiler profiler;
+    public File file;
+
+//    public LynxModule controlHub;
+//    public LynxModule expansionHub;
+//    public LynxModule servoHub;
+//    public ArrayList<LynxModule> hubs;
+    public VoltageSensor voltageSensor;
+    private double cachedVoltage;
+    private ElapsedTime voltageTimer;
+
+    public boolean readyToLaunch = false;
+
+    public MotorEx FRmotor;
+    public MotorEx FLmotor;
+    public MotorEx BLmotor;
+    public MotorEx BRmotor;
+
+    public CRServoEx FRswervo;
+    public CRServoEx FLswervo;
+    public CRServoEx BLswervo;
+    public CRServoEx BRswervo;
+
+
+
+    //public GoBildaPinpointDriver pinpoint;
+//    public IMU imu;
+
+
+
+
+    public void init(HardwareMap hwMap) {
+        File logsFolder = new File(AppUtil.FIRST_FOLDER, "logs");
+        if (!logsFolder.exists()) logsFolder.mkdirs();
+
+        long timestamp = System.currentTimeMillis();
+        file = new File(logsFolder, "profiler-" + timestamp + ".csv");
+
+        profiler = Profiler.builder()
+                .factory(new BasicProfilerEntryFactory())
+                .exporter(new CSVProfilerExporter(file))
+                .debugLog(false) // Log EVERYTHING
+                .build();
+
+        PhotonCore.CONTROL_HUB.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
+        PhotonCore.EXPANSION_HUB.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
+        PhotonCore.experimental.setMaximumParallelCommands(8);
+        PhotonCore.enable();
+
+        // Hardware
+        voltageSensor = hwMap.voltageSensor.iterator().next();
+
+        FRmotor = new MotorEx(hwMap, "FR").setCachingTolerance(0.01);
+        FLmotor = new MotorEx(hwMap, "FL").setCachingTolerance(0.01);
+        BLmotor = new MotorEx(hwMap, "BL").setCachingTolerance(0.01);
+        BRmotor = new MotorEx(hwMap, "BR").setCachingTolerance(0.01);
+
+        FRmotor.setRunMode(Motor.RunMode.RawPower);
+        FLmotor.setRunMode(Motor.RunMode.RawPower);
+        BLmotor.setRunMode(Motor.RunMode.RawPower);
+        BRmotor.setRunMode(Motor.RunMode.RawPower);
+
+
+        FRswervo = new CRServoEx(hwMap, "FR", new AbsoluteAnalogEncoder(hwMap, "FR")
+                .zero(FR_ENCODER_OFFSET), CRServoEx.RunMode.RawPower)
+                .setCachingTolerance(0.02);
+        FLswervo = new CRServoEx(hwMap, "FL", new AbsoluteAnalogEncoder(hwMap, "FL")
+                .zero(FL_ENCODER_OFFSET), CRServoEx.RunMode.RawPower)
+                .setCachingTolerance(0.02);
+        BLswervo = new CRServoEx(hwMap, "BL", new AbsoluteAnalogEncoder(hwMap, "BL")
+                .zero(BL_ENCODER_OFFSET), CRServoEx.RunMode.RawPower)
+                .setCachingTolerance(0.02);
+        BRswervo = new CRServoEx(hwMap, "BR", new AbsoluteAnalogEncoder(hwMap, "BR")
+                .zero(BR_ENCODER_OFFSET), CRServoEx.RunMode.RawPower)
+                .setCachingTolerance(0.02);
+
+//        pinpoint = hwMap.get(GoBildaPinpointDriver.class, "pinpoint");
+//        pinpoint.setOffsets(-76.32, 152.62, DistanceUnit.MM);
+//        pinpoint.setEncoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_SWINGARM_POD);
+//        pinpoint.setEncoderDirections(GoBildaPinpointDriver.EncoderDirection.REVERSED, GoBildaPinpointDriver.EncoderDirection.REVERSED);
+//        pinpoint.resetPosAndIMU();
+//        pinpoint.setPosition(Pose2d.convertToPose2D(END_POSE, DistanceUnit.INCH, AngleUnit.RADIANS));
+
+
+
+
+
+        register(drive);
+
+        if (OP_MODE_TYPE.equals(OpModeType.AUTO)) {
+            initHasMovement();
+        }
+    }
+
+    public void initHasMovement() {
+        drive.init();
+
+    }
+    
+    public double getVoltage() {
+        // TODO: fix getVoltage eventually
+        if (voltageTimer == null) {
+            cachedVoltage = voltageSensor.getVoltage();
+        } else if (voltageTimer.milliseconds() > (1.0 / VOLTAGE_SENSOR_POLLING_RATE) * 1000) {
+            cachedVoltage = voltageSensor.getVoltage();
+        }
+        if (((Double) cachedVoltage).isNaN() || cachedVoltage == 0) {
+            cachedVoltage = 12;
+        }
+        return cachedVoltage;
+    }
+
+    public void exportProfiler(File file) {
+        RobotLog.i("Starting async profiler export to: " + file.getAbsolutePath());
+
+        Thread exportThread = new Thread(() -> {
+            try {
+                profiler.export();
+                profiler.shutdown();
+            } catch (Exception e) {
+                Log.e("An error occurred", e.toString());
+                Log.e(e.toString(), Arrays.toString(e.getStackTrace()));
+            }
+        });
+
+        exportThread.setDaemon(true);
+        exportThread.start();
+    }
+
+    /* Not needed now that we have pinpoint
+    public void initializeImu(HardwareMap hardwareMap) {
+        // IMU orientation
+        imu = hardwareMap.get(IMU.class, "imu");
+        IMU.Parameters parameters = new IMU.Parameters(new RevHubOrientationOnRobot(
+                RevHubOrientationOnRobot.LogoFacingDirection.RIGHT,
+                RevHubOrientationOnRobot.UsbFacingDirection.UP));
+        imu.initialize(parameters);
+    }
+     */
+
+    public void updateLoop(TelemetryData telemetryData) {
+        CommandScheduler.getInstance().run();
+        telemetryData.update();
+        PhotonCore.CONTROL_HUB.clearBulkCache();
+        PhotonCore.EXPANSION_HUB.clearBulkCache();
+    }
+}
