@@ -67,7 +67,8 @@ public class P2PController {
 
         double xVal = xController.calculate(current.getX(), target.getX());
         double yVal = yController.calculate(current.getY(), target.getY());
-        double headingVal = headingController.calculate(0, MathUtils.normalizeAngle(error.getRotation().getAngle(angleUnit), false, angleUnit));
+        double headingVal = headingController.calculate(0, MathUtils.
+                normalizeAngle(error.getRotation().getAngle(angleUnit), false, angleUnit));
 
         return new ChassisSpeeds(xVal, yVal, headingVal);
     }
@@ -113,7 +114,9 @@ public class P2PController {
      * @return Whether the error is within the acceptable bounds.
      */
     public boolean atTarget() {
-        return xController.atSetPoint() && yController.atSetPoint() && headingController.atSetPoint();
+        return xController.atSetPoint() &&
+                yController.atSetPoint() &&
+                headingController.atSetPoint();
     }
 
     /**

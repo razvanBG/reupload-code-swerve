@@ -1,7 +1,2 @@
 # pack-refs with: peeled fully-peeled sorted 
-19936849f8a937a05ee0fcbf4c11cbe053af50ee refs/remotes/origin/autoaim
-e86f69de8265d7c3dd5af72aa1554a5f1b19dc8b refs/remotes/origin/master
-b9091525a31356154c399fc260e218b11e31e1f4 refs/remotes/origin/p2p
-6feb77afee48873c1851c18b24201f070c2e7675 refs/remotes/origin/photon
-796f63df5e9e4a9e461a70ab3fa026b3fc6d20bc refs/remotes/origin/pinpoint-fallback
-eef96bbf8535c70e27465304755f73a32b406506 refs/remotes/origin/psi-kit
+4328b31881f60b8dee17cfb102573a64accc308e refs/remotes/origin/master

@@ -8,7 +8,7 @@
 [submodule]
 	active = .
 [remote "origin"]
-	url = https://github.com/FTC-23511/Decode-2026.git
+	url = https://github.com/tigansef/TutorialCode.git
 	fetch = +refs/heads/*:refs/remotes/origin/*
 [branch "master"]
 	remote = origin
@@ -16,5 +16,5 @@
 [lfs]
 	repositoryformatversion = 0
 [remote "upstream"]
-	url = https://github.com/FTC-23511/SolversLib-Quickstart.git
+	url = https://github.com/FIRST-Tech-Challenge/FtcRobotController.git
 	fetch = +refs/heads/*:refs/remotes/upstream/*
